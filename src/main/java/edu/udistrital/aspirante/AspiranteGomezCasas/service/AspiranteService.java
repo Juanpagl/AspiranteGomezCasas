@@ -1,40 +1,50 @@
 package edu.udistrital.aspirante.AspiranteGomezCasas.service;
 
-import java.util.List;
-import java.util.Optional;
-
-import org.springframework.beans.factory.annotation.Autowired;
+import edu.udistrital.aspirante.AspiranteGomezCasas.model.Aspirante;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 
-import edu.udistrital.aspirante.AspiranteGomezCasas.model.Aspirante;
-import edu.udistrital.aspirante.AspiranteGomezCasas.repository.AspiranteRepository;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class AspiranteService {
 
-    @Autowired 
-    AspiranteRepository repo;
+    private static final String FILE_PATH = "aspirantes.json";
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public AspiranteService() {
+    public List<Aspirante> obtenerTodos() {
+        File file = new File(FILE_PATH);
+        if (!file.exists()) {
+            return new ArrayList<>();
+        }
+        try {
+            return objectMapper.readValue(file, new TypeReference<List<Aspirante>>() {});
+        } catch (IOException e) {
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
     }
-    
-    public List<Aspirante> obtenerTodos(){
-        return repo.findAll();
-    }
-    
-    public void guardar(Aspirante aspirante) {
-        repo.save(aspirante);
-    }
-    
-    public void actualizar(Aspirante aspirante) {
-        repo.update(aspirante);
-    }
-    
-    public void eliminar(String identificacion) {
-        repo.delete(identificacion);
-    }
-    
-    public Optional<Aspirante> buscarId(String identificacion) {
-        return repo.findById(identificacion);
+
+    public Aspirante guardar(Aspirante aspirante) {
+        List<Aspirante> aspirantes = obtenerTodos();
+        
+        if (aspirante.getId() == null) {
+            aspirante.setId((long) (aspirantes.size() + 1));
+        }
+
+        aspirantes.add(aspirante);
+
+        try {
+            objectMapper.writerWithDefaultPrettyPrinter().writeValue(new File(FILE_PATH), aspirantes);
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException("Error al escribir en el archivo JSON", e);
+        }
+
+        return aspirante;
     }
 }
